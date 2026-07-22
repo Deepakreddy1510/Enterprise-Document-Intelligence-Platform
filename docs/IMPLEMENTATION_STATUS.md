@@ -31,3 +31,18 @@ npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --p
 - `pytest backend/tests` did not collect because this runner's Python 3.14 environment lacks the project runtime packages (`jwt`, `pydantic`, PyMuPDF) and differs from the pinned Python 3.11 target.
 - `npm --prefix frontend install` was blocked by a registry `403 Forbidden` for `@tailwindcss/postcss`; no frontend checks were claimed as passed.
 - Docker/Compose and migrations remain unverified because `docker` is not installed.
+
+## Correctness follow-up implemented in code
+- Sentence Transformer `encode`, tokenizer work, PyMuPDF extraction, and Gemini generation are dispatched with `asyncio.to_thread` so synchronous SDK/model calls do not block the request event loop.
+- Ingestion now starts and indexes through separate clean sessions, rolls back failed batch writes, then records a bounded user-facing failed status through a fresh transaction.
+- Chunk sizing now counts the configured embedding tokenizer's real tokens. Sentence boundaries and tokenizer-token overlap are preserved; only a single oversized sentence is split by the tokenizer.
+- Gemini prompts use `CHAT_HISTORY_MESSAGE_LIMIT` and label history separately from retrieved evidence; both are explicitly untrusted.
+- Upload validates a whole batch before files are written and deletes all written paths if the database commit fails. Same-batch duplicate content is rejected.
+- Migration `002_add_query_indexes` adds corrective query indexes without modifying the initial immutable migration.
+- Citation rendering now parses one complete Markdown document using safe citation links, preserving Markdown structures such as lists and tables.
+
+## Correctness follow-up verification
+- Passed: `git diff --check`, `ruff format --check backend`, `ruff check backend`, and `mypy backend/app`.
+- `pytest backend/tests` now discovers repository-local test modules but cannot import required Python packages in this runner (`pydantic`, `jwt`, `fitz`); install the Python 3.11 project dependencies before treating test results as valid.
+- `npm --prefix frontend install` remains blocked by registry `403 Forbidden` for `@tailwindcss/postcss`. As a consequence lint, typecheck, Vitest, and Next build all failed only because their dependency binaries/types are unavailable; no frontend result is claimed as passing.
+- Docker is absent, so Compose config/startup, migration execution, endpoint smoke tests, full PDF workflow, and live Gemini calls remain unverified.

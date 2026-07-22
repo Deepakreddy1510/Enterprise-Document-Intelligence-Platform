@@ -6,6 +6,7 @@ dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "pydantic-settings>
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["integration: requires PostgreSQL with pgvector"]
 [tool.ruff]
 line-length = 100
