@@ -21,9 +21,15 @@ from app.models import (
     MessageSource,
     User,
 )
+from app.services.embeddings import embed
 from app.services.ingestion import process_document
 
 router = APIRouter()
+
+
+async def embed_query_in_thread(query: str) -> list[float]:
+    """Run local Sentence Transformer query embedding away from the event loop."""
+    return (await asyncio.to_thread(embed, [query]))[0]
 
 
 class Credentials(BaseModel):
@@ -441,9 +447,7 @@ async def message(
     ).all()
     if not ids:
         raise HTTPException(422, "Select at least one ready document before asking a question")
-    from app.services.embeddings import embed
-
-    vector = embed([data.content])[0]
+    vector = await embed_query_in_thread(data.content)
     # pgvector cosine distance, ownership predicate is mandatory.
     stmt = (
         select(

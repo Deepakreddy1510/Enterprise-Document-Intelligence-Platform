@@ -46,3 +46,8 @@ npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --p
 - `pytest backend/tests` now discovers repository-local test modules but cannot import required Python packages in this runner (`pydantic`, `jwt`, `fitz`); install the Python 3.11 project dependencies before treating test results as valid.
 - `npm --prefix frontend install` remains blocked by registry `403 Forbidden` for `@tailwindcss/postcss`. As a consequence lint, typecheck, Vitest, and Next build all failed only because their dependency binaries/types are unavailable; no frontend result is claimed as passing.
 - Docker is absent, so Compose config/startup, migration execution, endpoint smoke tests, full PDF workflow, and live Gemini calls remain unverified.
+
+## Query embedding offload follow-up
+- The conversation message route now delegates query embedding to `embed_query_in_thread`, which invokes the local Sentence Transformer through `asyncio.to_thread` before pgvector search.
+- Added a behavioral async mock test that verifies the route helper dispatches the actual embedding callable and returns the thread-pool result.
+- GitHub PR mergeability cannot be inspected from this runner: there is no configured Git remote and the GitHub CLI is not installed. No local branch conflict is present (`git status` is clean before this change); GitHub's reported non-mergeable state therefore cannot be diagnosed or resolved here.
