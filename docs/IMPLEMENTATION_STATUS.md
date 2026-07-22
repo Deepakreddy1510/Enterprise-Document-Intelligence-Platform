@@ -1,24 +1,33 @@
 # Implementation Status
 
-## Completed
-Repository structure; FastAPI routes; SQLAlchemy models; pgvector Alembic migration; cookie JWT authentication; ownership-scoped document and conversation routes; PDF upload validation/storage; BackgroundTasks ingestion; PyMuPDF extraction; sentence-aware chunking; BGE embedding service; pgvector retrieval query; Gemini grounded generation with source-ID validation; basic Next.js account and document UI; Docker Compose; core documentation.
+## Implemented in code
+- Cookie JWT registration/login/logout/current-user and ownership-scoped APIs.
+- PDF-only validation, UUID local storage, duplicate checksum detection, FastAPI BackgroundTasks ingestion, PyMuPDF extraction, configurable sentence-aware chunks, normalized BGE embeddings, pgvector storage/retrieval, and Gemini source-ID validation.
+- Conversation create/list/open/rename/delete, selected-document management, persisted messages, persisted source snapshots, empty-index insufficient-context persistence, and document/chunk/conversation-membership cascades.
+- Responsive dashboard with real document upload/status polling/retry/delete, conversation sidebar, document selection, chat composer, Markdown rendering, structured citation cards, and Escape-close source dialog.
+- Alembic pgvector migration, Docker Compose definition, configuration template, static checks, and focused unit tests.
 
-## Partially completed
-Frontend conversation/chat experience is represented by backend APIs but needs a fuller interactive UI. Integration verification requires Docker and a Gemini key. Automated test suite currently emphasizes pure chunking/configuration behavior and requires expansion before production use.
+## Implemented but not verified in this runner
+Docker startup, Alembic execution, database integration tests, frontend install/lint/type/test/build, full upload-to-chat flow, and live Gemini generation. Docker is not installed; npm registry access returns 403; the host is Python 3.14 without the Python 3.11 project dependencies.
 
-## Deferred
-All roadmap items in `IMPLEMENTATION_PLAN.md`, plus robust rate limiting, comprehensive audit logs, and durable queues.
+## Required manual values
+`POSTGRES_PASSWORD`, a 16+ character `JWT_SECRET_KEY`, and `GEMINI_API_KEY`. `GEMINI_MODEL` defaults to `gemini-2.0-flash` but may need changing for the supplied key.
 
-## Manual requirements
-Set `POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, `GEMINI_API_KEY`, and optionally `GEMINI_MODEL` in `deployment/.env`.
+## Deferred by scope
+Durable background workers, hybrid retrieval, reranking, OCR, non-PDF formats, refresh tokens, workspaces, evaluation dashboards, CI/CD, monitoring, object storage, and cloud deployment.
 
-## Next action
-Run Compose, migrations, and API workflow verification after installing dependencies and providing secrets.
+## Local verification commands
+```bash
+cp deployment/.env.example deployment/.env
+# edit deployment/.env
+docker compose -f deployment/docker-compose.yml up --build
+cd backend && python3.11 -m pip install -e . && pytest tests
+npm --prefix frontend install
+npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --prefix frontend run test && npm --prefix frontend run build
+```
 
-## Verification record
-- `ruff format --check backend`: passed after formatting migration scripts.
-- `ruff check backend`: passed.
-- `mypy backend/app`: passed.
-- `pytest backend/tests`: blocked: the host Python 3.14 environment has not installed project dependencies (`pydantic`, `PyMuPDF`) and does not match required Python 3.11.
-- `npm --prefix frontend install`: blocked with registry `403 Forbidden` for `@types/node`; frontend lint/type/build/tests could not run.
-- Docker is unavailable in this environment (`docker: command not found`), so Compose validation, migrations, and end-to-end API checks are unverified.
+## Latest runner results
+- `git diff --check`, `ruff format --check backend`, `ruff check backend`, and `mypy backend/app` passed.
+- `pytest backend/tests` did not collect because this runner's Python 3.14 environment lacks the project runtime packages (`jwt`, `pydantic`, PyMuPDF) and differs from the pinned Python 3.11 target.
+- `npm --prefix frontend install` was blocked by a registry `403 Forbidden` for `@tailwindcss/postcss`; no frontend checks were claimed as passed.
+- Docker/Compose and migrations remain unverified because `docker` is not installed.

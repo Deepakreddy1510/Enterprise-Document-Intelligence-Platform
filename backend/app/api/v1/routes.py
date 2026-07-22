@@ -304,7 +304,30 @@ async def conversation(
         "title": c.title,
         "documents": [str(i) for i in ids],
         "messages": [
-            {"id": str(m.id), "role": m.role, "content": m.content, "created_at": m.created_at}
+            {
+                "id": str(m.id),
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at,
+                "sources": [
+                    {
+                        "citation_id": source.citation_id,
+                        "page": source.page_number,
+                        "similarity": source.similarity,
+                        "content": source.content_snapshot,
+                        "chunk_id": str(source.chunk_id),
+                        "document_name": document_name,
+                    }
+                    for source, document_name in (
+                        await session.execute(
+                            select(MessageSource, Document.original_filename)
+                            .join(DocumentChunk, MessageSource.chunk_id == DocumentChunk.id)
+                            .join(Document, DocumentChunk.document_id == Document.id)
+                            .where(MessageSource.message_id == m.id, Document.user_id == user.id)
+                        )
+                    ).all()
+                ],
+            }
             for m in msgs
         ],
     }
@@ -399,20 +422,42 @@ async def message(
     vector = embed([data.content])[0]
     # pgvector cosine distance, ownership predicate is mandatory.
     stmt = (
-        select(DocumentChunk, Document)
+        select(
+            DocumentChunk,
+            Document,
+            (1 - DocumentChunk.embedding.cosine_distance(vector)).label("similarity"),
+        )
         .join(Document)
         .where(Document.user_id == user.id, DocumentChunk.document_id.in_(ids))
         .order_by(DocumentChunk.embedding.cosine_distance(vector))
         .limit(get_settings().retrieval_top_k)
     )
     rows = (await session.execute(stmt)).all()
+    # An empty index is a valid insufficient-context result, not a fabricated answer.
     if not rows:
-        raise HTTPException(422, "No indexed content is available in the selected documents")
-    sources = []
-    blocks = []
-    for i, (chunk, doc) in enumerate(rows, 1):
-        cid = f"S{i}"
-        sources.append((cid, chunk, doc))
+        human = Message(conversation_id=c.id, role="user", content=data.content)
+        assistant = Message(
+            conversation_id=c.id,
+            role="assistant",
+            content="The selected documents do not contain enough indexed context to answer this question.",
+        )
+        session.add_all([human, assistant])
+        await session.commit()
+        return {
+            "conversation_id": str(c.id),
+            "message_id": str(assistant.id),
+            "answer": assistant.content,
+            "sources": [],
+        }
+    sources: list[tuple[str, DocumentChunk, Document, float]] = []
+    blocks: list[str] = []
+    seen_contents: set[str] = set()
+    for chunk, doc, similarity in rows:
+        if chunk.content in seen_contents:
+            continue
+        seen_contents.add(chunk.content)
+        cid = f"S{len(sources) + 1}"
+        sources.append((cid, chunk, doc, float(similarity)))
         blocks.append(
             f"[{cid}] document={doc.original_filename}; page={chunk.page_number}; chunk={chunk.id}\n{chunk.content}"
         )
@@ -449,14 +494,14 @@ async def message(
     session.add_all([human, assistant])
     await session.flush()
     payload = []
-    for cid, chunk, doc in sources:
+    for cid, chunk, doc, similarity in sources:
         if cid in cited:
             session.add(
                 MessageSource(
                     message_id=assistant.id,
                     chunk_id=chunk.id,
                     citation_id=cid,
-                    similarity=0.0,
+                    similarity=similarity,
                     page_number=chunk.page_number,
                     content_snapshot=chunk.content,
                 )
@@ -469,7 +514,7 @@ async def message(
                     "page": chunk.page_number,
                     "chunk_id": str(chunk.id),
                     "chunk_index": chunk.chunk_index,
-                    "similarity": 0.0,
+                    "similarity": similarity,
                     "content": chunk.content,
                 }
             )
