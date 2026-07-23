@@ -1,6 +1,6 @@
 # Enterprise RAG Assistant
 
-A placement-ready, multi-user PDF assistant: users register, upload PDFs, wait for background extraction and embedding, select documents for conversations, and receive Gemini answers with page-level citations.
+A multi-user PDF assistant: users register, upload PDFs, wait for background extraction and embedding, select documents for conversations, and receive Gemini answers with page-level citations.
 
 ```mermaid
 flowchart LR
