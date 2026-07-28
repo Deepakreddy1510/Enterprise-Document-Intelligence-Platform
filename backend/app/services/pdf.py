@@ -34,6 +34,8 @@ def extract_pages(path: str) -> list[tuple[int, str]]:
 
 
 def clean_text(text: str) -> str:
+    """Normalize extracted PDF text before chunking or database storage."""
+    text = text.replace("\x00", " ")
     text = unicodedata.normalize("NFKC", text)
     text = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
     return re.sub(r"\s+", " ", text).strip()
