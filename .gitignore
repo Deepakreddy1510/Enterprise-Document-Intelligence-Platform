@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+backend/.venv/
+frontend/node_modules/
+frontend/.next/
+uploads/*
+!uploads/.gitkeep
+backend/evaluation/results*.json
+backend/evaluation/results*.csv
+backend/.cache/

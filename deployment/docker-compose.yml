@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-enterprise_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-enterprise_rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"], interval: 5s, timeout: 5s, retries: 10}
+  backend:
+    build: ../backend
+    env_file: .env
+    environment: {DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-enterprise_rag}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-enterprise_rag}}
+    ports: ["8000:8000"]
+    volumes: [uploads:/app/uploads]
+    depends_on: {postgres: {condition: service_healthy}}
+    healthcheck: {test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"], interval: 10s, timeout: 5s, retries: 10}
+  frontend:
+    build: ../frontend
+    env_file: .env
+    ports: ["3000:3000"]
+    depends_on: {backend: {condition: service_healthy}}
+volumes: {postgres_data: {}, uploads: {}}
