@@ -41,17 +41,29 @@ def clean_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _tail_for_overlap(units: list[str], overlap: int, count: Callable[[str], int]) -> list[str]:
+def _tail_for_overlap(
+    units: list[str],
+    overlap: int,
+    count: Callable[[str], int],
+) -> list[str]:
+    if overlap <= 0:
+        return []
+
     selected: list[str] = []
     total = 0
+
     for unit in reversed(units):
         unit_tokens = count(unit)
+
         if selected and total + unit_tokens > overlap:
             break
+
         selected.append(unit)
         total += unit_tokens
+
         if total >= overlap:
             break
+
     return list(reversed(selected))
 
 
