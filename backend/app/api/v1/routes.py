@@ -108,7 +108,7 @@ def _set_cookie(response: Response, token: str):
         "access_token",
         token,
         httponly=True,
-        samesite="lax",
+        samesite="none" if s.environment == "production" else "lax",
         secure=s.environment == "production",
         max_age=s.jwt_access_token_expire_minutes * 60,
         path="/",
