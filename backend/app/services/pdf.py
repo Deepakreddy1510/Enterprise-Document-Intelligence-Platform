@@ -34,22 +34,36 @@ def extract_pages(path: str) -> list[tuple[int, str]]:
 
 
 def clean_text(text: str) -> str:
+    """Normalize extracted PDF text before chunking or database storage."""
+    text = text.replace("\x00", " ")
     text = unicodedata.normalize("NFKC", text)
     text = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _tail_for_overlap(units: list[str], overlap: int, count: Callable[[str], int]) -> list[str]:
+def _tail_for_overlap(
+    units: list[str],
+    overlap: int,
+    count: Callable[[str], int],
+) -> list[str]:
+    if overlap <= 0:
+        return []
+
     selected: list[str] = []
     total = 0
+
     for unit in reversed(units):
         unit_tokens = count(unit)
+
         if selected and total + unit_tokens > overlap:
             break
+
         selected.append(unit)
         total += unit_tokens
+
         if total >= overlap:
             break
+
     return list(reversed(selected))
 
 
