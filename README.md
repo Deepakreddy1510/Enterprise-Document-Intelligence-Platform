@@ -2,17 +2,15 @@
 
 A full-stack, multi-user Retrieval-Augmented Generation (RAG) application for uploading PDF documents, indexing them with local embeddings, retrieving relevant chunks with PostgreSQL + pgvector, and generating grounded answers with Google Gemini and page-level citations.
 
-> **Deployment status:** The project is working locally with Docker Compose. Public cloud deployment is still in progress. An initial Render Free backend attempt exceeded the 512 MB memory limit while loading the Python/ML stack, so the repository should not yet claim a completed public deployment.
 
 ## Architecture / Workflow
 
-Add the workflow image to:
+
 
 ```text
 docs/architecture-workflow.png
 ```
 
-Then keep this in the README:
 
 <p align="center">
   <img src="docs/architecture-workflow.png" alt="Enterprise RAG Assistant end-to-end workflow" width="100%">
