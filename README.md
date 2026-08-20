@@ -1,4 +1,4 @@
-# Enterprise Document Intelligence Platform
+# PDF RAG Assistant
 
 A full-stack, multi-user Retrieval-Augmented Generation (RAG) application for uploading PDF documents, indexing them with local embeddings, retrieving relevant chunks with PostgreSQL + pgvector, and generating grounded answers with Google Gemini and page-level citations.
 
